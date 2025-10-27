@@ -5,7 +5,9 @@ metadata:
   namespace: guided
 spec:
   instances: 3
-  imageName: ghcr.io/carverauto/guided/postgres-age:latest
+  imageName: ghcr.io/carverauto/guided/postgres-age:20251027-1
+  imagePullSecrets:
+    - name: ghcr-io-cred
   enableSuperuserAccess: true
   superuserSecret:
     name: guided-postgres-secret
@@ -26,14 +28,3 @@ spec:
       shared_buffers: 256MB
       max_connections: "100"
       password_encryption: scram-sha-256
-  managed:
-    roles:
-      - name: guided
-        ensure: present
-        login: true
-        superuser: true
-        createdb: true
-        createrole: true
-        passwordSecret:
-          name: guided-postgres-secret
-          key: GUIDED_APP_PASSWORD

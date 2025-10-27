@@ -11,18 +11,11 @@ secretGenerator:
     namespace: guided
     options:
       disableNameSuffixHash: true
-    literals:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=guided
-      - POSTGRES_DB=guided
-      - GUIDED_APP_USER=guided
-      - GUIDED_APP_PASSWORD=guided
-      - username=postgres
-      - password=guided
+    envs:
+      - secrets/postgres.env
   - name: guided-app-secret
     namespace: guided
     options:
       disableNameSuffixHash: true
-    literals:
-      - SECRET_KEY_BASE=Tp9wQk2ozVq3cVyar8JXh0gQf7ZlKHD2G4wby0SWmQY8wVbJ7w9Gm3TqCz5jNh1L
-      - RELEASE_COOKIE=guided-cookie
+    envs:
+      - secrets/app.env

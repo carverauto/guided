@@ -10,7 +10,8 @@ extension. Pass --push to publish to ghcr.io/carverauto/guided/postgres-age:<tag
 
 Environment variables:
   BUILD_ARGS    Additional docker build arguments (optional)
-  AGE_VERSION   Git tag or branch of apache/age to build (default v1.5.0)
+  AGE_VERSION   Git branch or tag to build (default release/PG16/1.6.0)
+  BUILDER_IMAGE Debian image for compilation (default debian:bullseye-slim)
   CNPG_IMAGE    Base CloudNativePG image (default ghcr.io/cloudnative-pg/postgresql:16.4-7)
   PLATFORM      Target platform (default: linux/amd64)
   GHCR_USER     Username for docker login (required when using --push)
@@ -47,7 +48,8 @@ IMAGE_NAME="ghcr.io/carverauto/guided/postgres-age:${TAG}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 
 BUILD_ARGS_COMBINED=( ${BUILD_ARGS:-} \
-  --build-arg "AGE_VERSION=${AGE_VERSION:-v1.5.0}" \
+  --build-arg "AGE_VERSION=${AGE_VERSION:-release/PG16/1.6.0}" \
+  --build-arg "BUILDER_IMAGE=${BUILDER_IMAGE:-debian:bullseye-slim}" \
   --build-arg "CNPG_IMAGE=${CNPG_IMAGE:-ghcr.io/cloudnative-pg/postgresql:16.4-7}" )
 
 echo "Building ${IMAGE_NAME} for ${PLATFORM}"

@@ -1,35 +1,41 @@
-# syntax=docker/dockerfile:1.7
-
+ARG BUILDER_IMAGE=debian:bullseye-slim
+ARG AGE_VERSION=release/PG16/1.6.0
 ARG CNPG_IMAGE=ghcr.io/cloudnative-pg/postgresql:16.4-7
-ARG AGE_VERSION=v1.5.0
 
-FROM ${CNPG_IMAGE} AS build
+FROM ${BUILDER_IMAGE} AS build
 
-USER root
+ARG AGE_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg && \
+    echo "deb http://apt.postgresql.org/pub/repos/apt bullseye-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+    curl -fsSL https://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
       build-essential \
       git \
       cmake \
       libreadline-dev \
-      libssl-dev && \
+      libssl-dev \
+      flex \
+      bison \
+      postgresql-server-dev-16 && \
     rm -rf /var/lib/apt/lists/*
 
-USER postgres
+WORKDIR /src
 
-WORKDIR /tmp
+RUN git clone --depth 1 --branch "${AGE_VERSION}" https://github.com/apache/age.git
 
-RUN git clone --branch ${AGE_VERSION} --depth 1 https://github.com/apache/age.git
-
-WORKDIR /tmp/age
+WORKDIR /src/age
 
 RUN make PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config && \
     make install PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config
 
 FROM ${CNPG_IMAGE} AS runtime
 
-COPY --from=build /usr/lib/postgresql/16/lib/ag_* /usr/lib/postgresql/16/lib/
+COPY --from=build /usr/lib/postgresql/16/lib/age.so /usr/lib/postgresql/16/lib/
 COPY --from=build /usr/share/postgresql/16/extension/age* /usr/share/postgresql/16/extension/
 
 USER root

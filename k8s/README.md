@@ -9,7 +9,8 @@ in different environments.
   config maps common to all environments. Requires the secrets
   `guided-postgres-secret` and `guided-app-secret` to already exist.
 - `dev/` – convenience overlay that generates development credentials with
-  `secretGenerator`. Suitable for single-node test clusters only.
+  `secretGenerator`. Create the local env files under `k8s/dev/secrets/`
+  (see the README in that directory) before running `kustomize build`.
 - `staging/` and `prod/` – production-style overlays that expect Bitnami
   SealedSecrets to supply credentials. Each overlay includes ingress
   configuration and image tag overrides.
