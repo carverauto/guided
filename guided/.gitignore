@@ -35,3 +35,11 @@ guided-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Scripts with hard-coded credentials (development only)
+/scripts/
+

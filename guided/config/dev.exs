@@ -1,12 +1,13 @@
 import Config
 
 # Configure your database
+# Use environment variables or fall back to defaults for development
 config :guided, Guided.Repo,
-  username: "postgres",
-  password: "guided",
-  hostname: "localhost",
-  port: 5455,
-  database: "guided",
+  username: System.get_env("DATABASE_USERNAME") || "postgres",
+  password: System.get_env("DATABASE_PASSWORD") || "guided",
+  hostname: System.get_env("DATABASE_HOSTNAME") || "localhost",
+  port: String.to_integer(System.get_env("DATABASE_PORT") || "5455"),
+  database: System.get_env("DATABASE_NAME") || "guided",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -24,7 +25,7 @@ config :guided, GuidedWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "8wTrN6+pbrRPJzemOHTZxs46yCBNRh9fm2lfgm+Q7NME3ePJ77FHPdVt2iQLJ5mX",
+  secret_key_base: System.get_env("SECRET_KEY_BASE") || "dev_secret_key_base_not_for_production_8wTrN6pbrRPJzemOHTZxs46yCBNRh9fm2lfgmQ7NME3ePJ77FHPdVt2iQLJ5mX",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:guided, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:guided, ~w(--watch)]}
