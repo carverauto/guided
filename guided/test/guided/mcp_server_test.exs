@@ -2,6 +2,7 @@ defmodule Guided.MCPServerTest do
   use Guided.DataCase, async: false
 
   alias Guided.Graph
+  alias Hermes.Server.Frame
 
   # Ensure the graph is seeded before each test
   setup do
@@ -476,6 +477,75 @@ defmodule Guided.MCPServerTest do
         """)
 
       assert length(results) > 0
+    end
+  end
+
+  describe "MCP tool handlers" do
+    test "tech stack recommendation handles string-key params and JSON context" do
+      {:ok, frame} = Guided.MCPServer.init(%{}, Frame.new())
+
+      params = %{
+        "intent" => "Build a data dashboard",
+        "context" => ~s({"users": "small_team"})
+      }
+
+      {:reply, response, _frame} =
+        Guided.MCPServer.handle_tool_call("tech_stack_recommendation", params, frame)
+
+      result = response.structured_content
+      assert result[:status] == "success"
+      assert result[:use_case] == "data_dashboard"
+    end
+
+    test "secure coding pattern handles string-key params" do
+      {:ok, frame} = Guided.MCPServer.init(%{}, Frame.new())
+
+      params = %{
+        "technology" => "SQLite",
+        "task" => "database security"
+      }
+
+      {:reply, response, _frame} =
+        Guided.MCPServer.handle_tool_call("secure_coding_pattern", params, frame)
+
+      result = response.structured_content
+      assert result[:status] == "success"
+      assert result[:technology] == "SQLite"
+      assert result[:count] >= 1
+    end
+
+    test "deployment guidance accepts JSON-encoded stack lists" do
+      {:ok, frame} = Guided.MCPServer.init(%{}, Frame.new())
+
+      params = %{
+        stack: ~s(["Streamlit", "SQLite"])
+      }
+
+      {:reply, response, _frame} =
+        Guided.MCPServer.handle_tool_call("deployment_guidance", params, frame)
+
+      result = response.structured_content
+      assert result[:status] == "success"
+
+      assert Enum.any?(result[:deployment_patterns], fn pattern ->
+               pattern[:name] == "Streamlit Cloud"
+             end)
+    end
+
+    test "deployment guidance accepts comma-separated stacks" do
+      {:ok, frame} = Guided.MCPServer.init(%{}, Frame.new())
+
+      params = %{
+        "stack" => "Streamlit, SQLite",
+        "requirements" => %{"budget" => "free"}
+      }
+
+      {:reply, response, _frame} =
+        Guided.MCPServer.handle_tool_call("deployment_guidance", params, frame)
+
+      result = response.structured_content
+      assert result[:status] == "success"
+      assert result[:recommendation][:name] in ["Streamlit Cloud", "Fly.io Deployment"]
     end
   end
 end

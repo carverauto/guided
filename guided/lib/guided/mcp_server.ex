@@ -29,7 +29,8 @@ defmodule Guided.MCPServer do
            {:required, :string,
             max: 200, description: "What you want to build (e.g., 'build a web app')"},
          context:
-           {:optional, :map, description: "Additional context like topic, user scale, complexity"}
+           {:optional, {:map, :any},
+            description: "Additional context like topic, user scale, complexity"}
        },
        description:
          "Get opinionated advice on the best and most secure tech stack for a given use case"
@@ -50,10 +51,11 @@ defmodule Guided.MCPServer do
      |> register_tool("deployment_guidance",
        input_schema: %{
          stack:
-           {:required, :list,
+           {:required, {:list, :string},
             description: "List of technologies in your stack (e.g., ['Streamlit', 'SQLite'])"},
          requirements:
-           {:optional, :map, description: "Requirements like user_load, custom_domain, budget"}
+           {:optional, {:map, :any},
+            description: "Requirements like user_load, custom_domain, budget"}
        },
        description: "Get recommendations for secure deployment patterns based on your tech stack"
      )}
@@ -93,137 +95,183 @@ defmodule Guided.MCPServer do
   end
 
   # Tech Stack Recommendation Implementation
-  defp tech_stack_recommendation(%{intent: intent} = params) do
-    context = Map.get(params, :context, %{})
+  defp tech_stack_recommendation(params) do
+    params = normalize_params(params)
 
-    # Determine use case based on intent
-    use_case = infer_use_case(intent, context)
+    with {:ok, intent} <- fetch_required_string(params, "intent"),
+         {:ok, context} <- normalize_context(Map.get(params, "context")) do
+      intent = String.trim(intent)
 
-    # Query for recommended technologies for this use case
-    # Note: We return flat results and group them in Elixir to avoid nested collect()
-    # Note: AGE doesn't support parameterized queries, so we interpolate directly (with escaping)
-    # Note: Return a single map object to match AGE's result type expectations
-    escaped_use_case = String.replace(use_case, "'", "\\'")
-
-    cypher_query = """
-    MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase {name: '#{escaped_use_case}'})
-    OPTIONAL MATCH (t)-[:HAS_VULNERABILITY]->(v:Vulnerability)
-    OPTIONAL MATCH (v)-[:MITIGATED_BY]->(sc:SecurityControl)
-    RETURN {
-      technology: t.name,
-      category: t.category,
-      description: t.description,
-      security_rating: t.security_rating,
-      vuln_name: v.name,
-      vuln_severity: v.severity,
-      vuln_description: v.description,
-      mitigation_name: sc.name
-    }
-    """
-
-    case Graph.query(cypher_query, []) do
-      {:ok, results} ->
-        # Parse and format the response
-        technologies = parse_tech_recommendations(results)
-
-        %{
-          status: "success",
-          use_case: use_case,
-          intent: intent,
-          recommendations: technologies,
-          guidance: generate_guidance_text(use_case, technologies)
-        }
-
-      {:error, error} ->
+      if intent == "" do
         %{
           status: "error",
-          message: "Failed to query knowledge graph: #{inspect(error)}"
+          message: "Intent must not be blank."
+        }
+      else
+        # Determine use case based on intent
+        use_case = infer_use_case(intent, context)
+
+        # Query for recommended technologies for this use case
+        # Note: We return flat results and group them in Elixir to avoid nested collect()
+        # Note: AGE doesn't support parameterized queries, so we interpolate directly (with escaping)
+        # Note: Return a single map object to match AGE's result type expectations
+        escaped_use_case = String.replace(use_case, "'", "\\'")
+
+        cypher_query = """
+        MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase {name: '#{escaped_use_case}'})
+        OPTIONAL MATCH (t)-[:HAS_VULNERABILITY]->(v:Vulnerability)
+        OPTIONAL MATCH (v)-[:MITIGATED_BY]->(sc:SecurityControl)
+        RETURN {
+          technology: t.name,
+          category: t.category,
+          description: t.description,
+          security_rating: t.security_rating,
+          vuln_name: v.name,
+          vuln_severity: v.severity,
+          vuln_description: v.description,
+          mitigation_name: sc.name
+        }
+        """
+
+        case Graph.query(cypher_query, []) do
+          {:ok, results} ->
+            # Parse and format the response
+            technologies = parse_tech_recommendations(results)
+
+            %{
+              status: "success",
+              use_case: use_case,
+              intent: intent,
+              recommendations: technologies,
+              guidance: generate_guidance_text(use_case, technologies)
+            }
+
+          {:error, error} ->
+            %{
+              status: "error",
+              message: "Failed to query knowledge graph: #{inspect(error)}"
+            }
+        end
+      end
+    else
+      {:error, message} ->
+        %{
+          status: "error",
+          message: message
         }
     end
   end
 
   # Secure Coding Pattern Implementation
-  defp secure_coding_pattern(%{technology: technology} = params) do
-    task = Map.get(params, :task, "")
+  defp secure_coding_pattern(params) do
+    params = normalize_params(params)
 
-    # Query for best practices related to this technology
-    # Note: AGE doesn't support parameterized queries, so we interpolate directly (with escaping)
-    # Note: Return a single map object to match AGE's result type expectations
-    escaped_technology = String.replace(technology, "'", "\\'")
+    with {:ok, technology} <- fetch_required_string(params, "technology"),
+         {:ok, task} <- normalize_optional_string(Map.get(params, "task"), "task") do
+      technology = String.trim(technology)
+      task = String.trim(task)
 
-    cypher_query = """
-    MATCH (t:Technology {name: '#{escaped_technology}'})-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
-    OPTIONAL MATCH (bp)-[:IMPLEMENTS_CONTROL]->(sc:SecurityControl)
-    RETURN {
-      practice_name: bp.name,
-      category: bp.category,
-      description: bp.description,
-      code_example: bp.code_example,
-      security_control: sc.name
-    }
-    """
-
-    case Graph.query(cypher_query, []) do
-      {:ok, results} ->
-        # Filter by task if provided
-        practices = parse_best_practices(results, task)
-
-        %{
-          status: "success",
-          technology: technology,
-          task: task,
-          patterns: practices,
-          count: length(practices)
-        }
-
-      {:error, error} ->
+      if technology == "" do
         %{
           status: "error",
-          message: "Failed to query knowledge graph: #{inspect(error)}"
+          message: "Technology must not be blank."
+        }
+      else
+        # Query for best practices related to this technology
+        # Note: AGE doesn't support parameterized queries, so we interpolate directly (with escaping)
+        # Note: Return a single map object to match AGE's result type expectations
+        escaped_technology = String.replace(technology, "'", "\\'")
+
+        cypher_query = """
+        MATCH (t:Technology {name: '#{escaped_technology}'})-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
+        OPTIONAL MATCH (bp)-[:IMPLEMENTS_CONTROL]->(sc:SecurityControl)
+        RETURN {
+          practice_name: bp.name,
+          category: bp.category,
+          description: bp.description,
+          code_example: bp.code_example,
+          security_control: sc.name
+        }
+        """
+
+        case Graph.query(cypher_query, []) do
+          {:ok, results} ->
+            # Filter by task if provided
+            practices = parse_best_practices(results, task)
+
+            %{
+              status: "success",
+              technology: technology,
+              task: task,
+              patterns: practices,
+              count: length(practices)
+            }
+
+          {:error, error} ->
+            %{
+              status: "error",
+              message: "Failed to query knowledge graph: #{inspect(error)}"
+            }
+        end
+      end
+    else
+      {:error, message} ->
+        %{
+          status: "error",
+          message: message
         }
     end
   end
 
   # Deployment Guidance Implementation
-  defp deployment_guidance(%{stack: stack} = params) do
-    requirements = Map.get(params, :requirements, %{})
+  defp deployment_guidance(params) do
+    params = normalize_params(params)
 
-    # Query for deployment patterns recommended for the use cases these technologies support
-    # Note: AGE doesn't support parameterized queries, build list inline
-    # Note: Return a single map object to match AGE's result type expectations
-    escaped_stack =
-      Enum.map(stack, fn tech -> "'#{String.replace(tech, "'", "\\'")}'" end) |> Enum.join(", ")
+    with {:ok, stack} <- normalize_stack(Map.get(params, "stack")),
+         {:ok, requirements} <- normalize_requirements(Map.get(params, "requirements")) do
+      # Query for deployment patterns recommended for the use cases these technologies support
+      # Note: AGE doesn't support parameterized queries, build list inline
+      # Note: Return a single map object to match AGE's result type expectations
+      escaped_stack =
+        Enum.map(stack, fn tech -> "'#{String.replace(tech, "'", "\\'")}'" end) |> Enum.join(", ")
 
-    cypher_query = """
-    MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)-[:RECOMMENDED_DEPLOYMENT]->(dp:DeploymentPattern)
-    WHERE t.name IN [#{escaped_stack}]
-    RETURN {
-      pattern_name: dp.name,
-      platform: dp.platform,
-      cost: dp.cost,
-      complexity: dp.complexity,
-      description: dp.description,
-      https_support: dp.https_support,
-      use_case: uc.name
-    }
-    """
+      cypher_query = """
+      MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)-[:RECOMMENDED_DEPLOYMENT]->(dp:DeploymentPattern)
+      WHERE t.name IN [#{escaped_stack}]
+      RETURN {
+        pattern_name: dp.name,
+        platform: dp.platform,
+        cost: dp.cost,
+        complexity: dp.complexity,
+        description: dp.description,
+        https_support: dp.https_support,
+        use_case: uc.name
+      }
+      """
 
-    case Graph.query(cypher_query, []) do
-      {:ok, results} ->
-        patterns = parse_deployment_patterns(results, requirements)
+      case Graph.query(cypher_query, []) do
+        {:ok, results} ->
+          patterns = parse_deployment_patterns(results, requirements)
 
-        %{
-          status: "success",
-          stack: stack,
-          requirements: requirements,
-          deployment_patterns: patterns,
-          recommendation: select_best_deployment(patterns, requirements)
-        }
+          %{
+            status: "success",
+            stack: stack,
+            requirements: requirements,
+            deployment_patterns: patterns,
+            recommendation: select_best_deployment(patterns, requirements)
+          }
 
-      {:error, error} ->
+        {:error, error} ->
+          %{
+            status: "error",
+            message: "Failed to query knowledge graph: #{inspect(error)}"
+          }
+      end
+    else
+      {:error, message} ->
         %{
           status: "error",
-          message: "Failed to query knowledge graph: #{inspect(error)}"
+          message: message
         }
     end
   end
@@ -311,16 +359,38 @@ defmodule Guided.MCPServer do
 
   defp filter_by_task(practices, task) do
     task_lower = String.downcase(task)
+    normalized_task = normalize_for_match(task)
 
-    Enum.filter(practices, fn practice ->
-      name_lower = String.downcase(practice.name)
-      category_lower = String.downcase(practice.category)
-      desc_lower = String.downcase(practice.description)
+    if normalized_task == "" do
+      practices
+    else
+      tokens =
+        normalized_task
+        |> String.split(" ")
+        |> Enum.filter(&(String.length(&1) >= 3))
 
-      String.contains?(name_lower, task_lower) or
-        String.contains?(category_lower, task_lower) or
-        String.contains?(desc_lower, task_lower)
-    end)
+      Enum.filter(practices, fn practice ->
+        fields = [practice.name, practice.category, practice.description]
+
+        direct_match? =
+          Enum.any?(fields, fn field ->
+            field
+            |> to_string()
+            |> String.downcase()
+            |> String.contains?(task_lower)
+          end)
+
+        token_match? =
+          Enum.any?(
+            Enum.map(fields, &normalize_for_match/1),
+            fn field ->
+              Enum.any?(tokens, fn token -> token != "" and String.contains?(field, token) end)
+            end
+          )
+
+        direct_match? or token_match?
+      end)
+    end
   end
 
   # Helper: Parse deployment patterns from graph results
@@ -405,5 +475,116 @@ defmodule Guided.MCPServer do
         "We recommend #{tech_names} for your use case. " <>
           "Review the security advisories and follow best practices for secure development."
     end
+  end
+
+  defp normalize_params(params) when is_map(params) do
+    Map.new(params, fn
+      {key, value} when is_atom(key) -> {Atom.to_string(key), value}
+      {key, value} when is_binary(key) -> {key, value}
+      {key, value} -> {to_string(key), value}
+    end)
+  end
+
+  defp normalize_params(_), do: %{}
+
+  defp fetch_required_string(params, key) do
+    case Map.get(params, key) do
+      nil -> {:error, "Missing required parameter '#{key}'."}
+      value -> normalize_string(value, key)
+    end
+  end
+
+  defp normalize_string(value, _key) when is_binary(value), do: {:ok, value}
+  defp normalize_string(value, _key) when is_atom(value), do: {:ok, Atom.to_string(value)}
+  defp normalize_string(value, _key) when is_number(value), do: {:ok, to_string(value)}
+  defp normalize_string(_value, key), do: {:error, "Parameter '#{key}' must be a string."}
+
+  defp normalize_optional_string(nil, _key), do: {:ok, ""}
+
+  defp normalize_optional_string(value, _key) when is_binary(value),
+    do: {:ok, value}
+
+  defp normalize_optional_string(value, _key) when is_atom(value),
+    do: {:ok, Atom.to_string(value)}
+
+  defp normalize_optional_string(value, _key) when is_number(value),
+    do: {:ok, to_string(value)}
+
+  defp normalize_optional_string(_value, key),
+    do: {:error, "Parameter '#{key}' must be a string if provided."}
+
+  defp normalize_context(nil), do: {:ok, %{}}
+
+  defp normalize_context(%{} = map) do
+    {:ok, stringify_keys(map)}
+  end
+
+  defp normalize_context(value) when is_binary(value) do
+    case Jason.decode(value) do
+      {:ok, %{} = map} -> {:ok, stringify_keys(map)}
+      {:ok, _} -> {:error, "Context must be a JSON object."}
+      {:error, _} -> {:error, "Context must be a JSON object."}
+    end
+  end
+
+  defp normalize_context(_value), do: {:error, "Context must be a map or JSON object."}
+
+  defp normalize_stack(stack) when is_list(stack) do
+    {:ok, Enum.map(stack, &to_string/1)}
+  end
+
+  defp normalize_stack(stack) when is_binary(stack) do
+    trimmed = String.trim(stack)
+
+    case Jason.decode(trimmed) do
+      {:ok, list} when is_list(list) ->
+        {:ok, Enum.map(list, &to_string/1)}
+
+      {:error, _} ->
+        parts =
+          trimmed
+          |> String.split(",", trim: true)
+          |> Enum.map(&String.trim/1)
+          |> Enum.reject(&(&1 == ""))
+          |> Enum.map(&String.trim(&1, "\""))
+
+        if Enum.empty?(parts) do
+          {:error, "Stack must contain at least one technology name."}
+        else
+          {:ok, parts}
+        end
+    end
+  end
+
+  defp normalize_stack(_stack) do
+    {:error, "Stack parameter must be a list of technology names."}
+  end
+
+  defp normalize_requirements(nil), do: {:ok, %{}}
+  defp normalize_requirements(%{} = map), do: {:ok, stringify_keys(map)}
+
+  defp normalize_requirements(req) when is_binary(req) do
+    case Jason.decode(req) do
+      {:ok, %{} = map} -> {:ok, stringify_keys(map)}
+      {:ok, _} -> {:error, "Requirements must be an object with key/value pairs."}
+      {:error, _} -> {:error, "Requirements must be a JSON object or map."}
+    end
+  end
+
+  defp normalize_requirements(_), do: {:error, "Requirements must be a JSON object or map."}
+
+  defp stringify_keys(map) do
+    Map.new(map, fn {k, v} -> {to_string(k), v} end)
+  end
+
+  defp normalize_for_match(nil), do: ""
+
+  defp normalize_for_match(text) do
+    text
+    |> to_string()
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/u, " ")
+    |> String.replace(~r/\s+/, " ")
+    |> String.trim()
   end
 end
