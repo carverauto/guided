@@ -60,6 +60,34 @@ Visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 For detailed setup instructions and manual installation, see [**docs/DEVELOPMENT.md**](guided/docs/DEVELOPMENT.md).
 
+## Using with Claude Desktop
+
+Connect Claude Desktop to guided.dev to get AI-powered secure coding guidance in your conversations!
+
+**Quick Setup:**
+
+1. Start the server: `mix phx.server`
+2. Add to your `claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "guided-dev": {
+         "command": "npx",
+         "args": ["mcp-remote", "http://localhost:4000/mcp"]
+       }
+     }
+   }
+   ```
+3. Restart Claude Desktop
+4. Ask Claude: "Do you have access to guided.dev?"
+
+**What you get:**
+- 🔒 **Security-first recommendations** with OWASP Top 10 advisories
+- 💻 **Secure code patterns** with real examples
+- 🚀 **Deployment guidance** for your tech stack
+
+**📖 Full guide:** [CLAUDE_DESKTOP_SETUP.md](CLAUDE_DESKTOP_SETUP.md)
+
 ## Project Vision
 
 ### The Problem
@@ -191,6 +219,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 
 ## Documentation
 
+- [**Claude Desktop Setup**](CLAUDE_DESKTOP_SETUP.md) - Quick start guide for Claude Desktop integration ⭐
 - [Development Setup](guided/docs/DEVELOPMENT.md) - Complete setup guide
 - [MCP Server Guide](guided/docs/MCP_SERVER.md) - MCP server documentation and API reference
 - [AGENTS.md Specification](AGENTS.md) - The protocol spec for AI agents
