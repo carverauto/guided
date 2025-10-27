@@ -1,5 +1,7 @@
 # Guided.dev
 
+<img width="1470" height="278" alt="Screenshot 2025-10-26 at 10 09 55 PM" src="https://github.com/user-attachments/assets/4967c133-620b-421c-adde-d01855253c02" />
+
 > A Protocol and Service for Building Great and Secure Software with AI Agents
 
 Guided.dev provides the missing link between AI coding assistants and best-practice software development: a curated knowledge graph of secure coding patterns, vulnerabilities, and architectural guidance, accessible via a standardized protocol.
