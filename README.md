@@ -19,28 +19,25 @@ Guided.dev consists of two key innovations:
 
 ## Current Status
 
-We're currently in **Phase 0** (Foundation & Setup) - **Complete** ✓
+**Phase 0** (Foundation & Setup) - **Complete** ✓
+**Phase 1** (Admin CRUD Interface) - **Complete** ✓
+**Phase 2** (MCP Server) - **In Progress** 🚧
 
+### Completed
 - ✓ PostgreSQL with Apache AGE graph database
 - ✓ Graph query interface (`Guided.Graph`)
 - ✓ Initial knowledge base (24 nodes, 24 relationships)
 - ✓ Custom mix tasks for setup and seeding
+- ✓ Admin CRUD interface with Phoenix LiveView
+- ✓ Knowledge graph management UI
 
-**Next Up**: Phase 1 - Admin CRUD Interface with Phoenix LiveView
+**Currently Working On**: MCP Server API endpoints
 
 ## Quick Start
 
 <img width="1252" height="768" alt="Knowledge Graph Dashboard" src="https://github.com/user-attachments/assets/d0ea6b01-493f-462d-bfb8-f1efbe204c14" />
 
-### Prerequisites
-
-- Erlang/OTP 28+
-- Elixir 1.19.1+
-- Docker
-
-### Automated Setup (Recommended)
-
-Get up and running in minutes:
+**Prerequisites**: Erlang/OTP 28+, Elixir 1.19.1+, Docker
 
 ```bash
 # Clone the repository
@@ -56,34 +53,7 @@ mix phx.server
 
 Visit [`localhost:4000`](http://localhost:4000) from your browser.
 
-### Manual Setup
-
-```bash
-# 1. Install dependencies (if using asdf)
-asdf install
-
-# 2. Start PostgreSQL with Apache AGE
-docker run \
-  --name age \
-  -p 5455:5432 \
-  -e POSTGRES_USER=postgresUser \
-  -e POSTGRES_PASSWORD=postgresPW \
-  -e POSTGRES_DB=postgresDB \
-  -d \
-  apache/age
-
-# 3. Setup the application
-mix setup
-
-# 4. Setup and seed the graph database
-mix graph.setup
-mix graph.seed
-
-# 5. Start the Phoenix server
-mix phx.server
-```
-
-Visit [`localhost:4000`](http://localhost:4000) from your browser.
+For detailed setup instructions and manual installation, see [**docs/DEVELOPMENT.md**](guided/docs/DEVELOPMENT.md).
 
 ## Project Vision
 
@@ -111,14 +81,16 @@ An AI agent building a Python web app:
 
 - **Backend**: Elixir / Phoenix Framework
 - **Database**: PostgreSQL with Apache AGE extension (graph database)
-- **Frontend**: Phoenix LiveView (planned for Phase 1)
+- **Frontend**: Phoenix LiveView
 - **Query Language**: openCypher
+- **API**: Model Context Protocol (MCP)
 
 ## Features
 
-### Current (Phase 0)
+### Completed
 
-- ✓ Graph database with Apache AGE
+**Phase 0** (Foundation):
+- ✓ PostgreSQL with Apache AGE graph database
 - ✓ openCypher query interface
 - ✓ Initial knowledge base covering:
   - Python, Streamlit, SQLite, FastAPI
@@ -126,12 +98,13 @@ An AI agent building a Python web app:
   - Security controls and mitigations
   - Best practices and deployment patterns
 
-### Planned
-
 **Phase 1** (Admin Interface):
-- LiveView-based admin CRUD interface
-- Node and relationship management
-- Graph visualization
+- ✓ LiveView-based admin CRUD interface
+- ✓ Node and relationship management
+- ✓ Knowledge graph dashboard
+- ✓ Graph visualization
+
+### In Progress
 
 **Phase 2** (MCP Server):
 - Public-facing MCP API
@@ -139,6 +112,13 @@ An AI agent building a Python web app:
   - `tech_stack_recommendation`
   - `secure_coding_pattern`
   - `deployment_guidance`
+
+### Future Roadmap
+
+- Expanded knowledge domains (JavaScript, Go, Rust, etc.)
+- Community contribution system
+- IDE integrations
+- Advanced graph analytics and insights
 
 ## Development
 
