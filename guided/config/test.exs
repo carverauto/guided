@@ -10,8 +10,9 @@ config :bcrypt_elixir, :log_rounds, 1
 # Run `mix help test` for more information.
 config :guided, Guided.Repo,
   username: "postgres",
-  password: "postgres",
+  password: "guided",
   hostname: "localhost",
+  port: 5455,
   database: "guided_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2

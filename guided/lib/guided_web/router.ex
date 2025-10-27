@@ -25,6 +25,12 @@ defmodule GuidedWeb.Router do
     live "/knowledge/:id", KnowledgeLive, :show
   end
 
+  # MCP Server endpoint
+  scope "/mcp" do
+    forward "/", Hermes.Server.Transport.StreamableHTTP.Plug,
+      server: Guided.MCPServer
+  end
+
   # Other scopes may use custom stacks.
   # scope "/api", GuidedWeb do
   #   pipe_through :api

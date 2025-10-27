@@ -12,6 +12,9 @@ defmodule Guided.Application do
       Guided.Repo,
       {DNSCluster, query: Application.get_env(:guided, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Guided.PubSub},
+      # MCP Server
+      Hermes.Server.Registry,
+      {Guided.MCPServer, transport: :streamable_http},
       # Start a worker by calling: Guided.Worker.start_link(arg)
       # {Guided.Worker, arg},
       # Start to serve requests, typically the last entry

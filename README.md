@@ -23,7 +23,7 @@ Guided.dev consists of two key innovations:
 
 **Phase 0** (Foundation & Setup) - **Complete** ✓
 **Phase 1** (Admin CRUD Interface) - **Complete** ✓
-**Phase 2** (MCP Server) - **In Progress** 🚧
+**Phase 2** (MCP Server) - **Complete** ✓
 
 ### Completed
 - ✓ PostgreSQL with Apache AGE graph database
@@ -32,8 +32,11 @@ Guided.dev consists of two key innovations:
 - ✓ Custom mix tasks for setup and seeding
 - ✓ Admin CRUD interface with Phoenix LiveView
 - ✓ Knowledge graph management UI
-
-**Currently Working On**: MCP Server API endpoints
+- ✓ MCP Server with three core tools:
+  - `tech_stack_recommendation` - Get tech stack advice for use cases
+  - `secure_coding_pattern` - Retrieve secure code patterns
+  - `deployment_guidance` - Get deployment recommendations
+- ✓ AGENTS.md protocol specification
 
 ## Quick Start
 
@@ -106,14 +109,15 @@ An AI agent building a Python web app:
 - ✓ Knowledge graph dashboard
 - ✓ Graph visualization
 
-### In Progress
-
 **Phase 2** (MCP Server):
-- Public-facing MCP API
-- Three core endpoints:
-  - `tech_stack_recommendation`
-  - `secure_coding_pattern`
-  - `deployment_guidance`
+- ✓ Public-facing MCP API at `/mcp` endpoint
+- ✓ Three core tools (capabilities):
+  - `tech_stack_recommendation` - Opinionated tech stack advice with security advisories
+  - `secure_coding_pattern` - Secure code snippets and best practices
+  - `deployment_guidance` - Deployment pattern recommendations
+- ✓ AGENTS.md protocol specification for AI agent discovery
+- ✓ Integration with Hermes MCP library
+- ✓ Streamable HTTP transport
 
 ### Future Roadmap
 
@@ -187,11 +191,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 
 ## Documentation
 
-- [Development Setup](docs/DEVELOPMENT.md) - Complete setup guide
+- [Development Setup](guided/docs/DEVELOPMENT.md) - Complete setup guide
+- [MCP Server Guide](guided/docs/MCP_SERVER.md) - MCP server documentation and API reference
+- [AGENTS.md Specification](AGENTS.md) - The protocol spec for AI agents
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
-- [Implementation Plan](docs/implementation_plan.md) - Phased roadmap
+- [Implementation Plan](guided/docs/implementation_plan.md) - Phased roadmap
 - [Phase 0 Completion](SETUP_COMPLETE.md) - Current progress
-- [AGENTS.md Specification](AGENTS.md) - The protocol spec
 - [Security Policy](SECURITY.md) - Security guidelines
 
 ## Architecture
