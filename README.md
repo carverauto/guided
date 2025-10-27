@@ -237,7 +237,7 @@ guided/
 
 ## License
 
-[License information to be added]
+Apache 2.0
 
 ## Contact
 
