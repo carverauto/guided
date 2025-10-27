@@ -373,23 +373,221 @@ Guided.Graph.query("""
 
 ### Claude Desktop Integration
 
-To use the guided.dev MCP server with Claude Desktop:
+Claude Desktop can connect to the guided.dev MCP server to provide secure coding guidance during development conversations.
 
-1. Add to `claude_desktop_config.json`:
+#### Prerequisites
+
+1. **Claude Desktop** installed ([download here](https://claude.ai/download))
+2. **guided.dev server running** locally:
+   ```bash
+   cd /path/to/guided
+   mix phx.server
+   ```
+3. **Node.js** installed (for `npx`)
+
+#### Configuration Steps
+
+**1. Locate your Claude Desktop config file:**
+
+The config file location depends on your OS:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+**2. Add guided.dev to your config:**
+
+Since guided.dev runs as an HTTP server, use `npx mcp-remote` to connect:
 
 ```json
 {
   "mcpServers": {
     "guided-dev": {
-      "url": "http://localhost:4000/mcp"
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:4000/mcp"
+      ]
     }
   }
 }
 ```
 
-2. Restart Claude Desktop
+**Full example with multiple servers:**
 
-3. The tools will be available to Claude automatically
+```json
+{
+  "mcpServers": {
+    "guided-dev": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:4000/mcp"
+      ]
+    },
+    "github": {
+      "command": "/path/to/github-mcp-server",
+      "args": ["stdio"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "your_token_here"
+      }
+    }
+  }
+}
+```
+
+**3. Restart Claude Desktop**
+
+Close and reopen Claude Desktop to load the new configuration.
+
+**4. Verify the connection**
+
+In a new conversation with Claude, you can verify the tools are available:
+
+```
+You: Do you have access to guided.dev tools?
+Claude: Yes, I have access to three guided.dev tools:
+- tech_stack_recommendation
+- secure_coding_pattern
+- deployment_guidance
+```
+
+#### Using guided.dev with Claude
+
+Once configured, Claude can automatically use guided.dev during development conversations:
+
+**Example 1: Getting tech stack recommendations**
+
+```
+You: I want to build a data dashboard to track my team's metrics
+Claude: [Uses tech_stack_recommendation tool]
+       Based on guided.dev's recommendations, I suggest using Streamlit
+       with SQLite for your team dashboard. However, be aware of these
+       security concerns:
+       - SQL Injection (critical): Use parameterized queries
+       - XSS (high): Validate and sanitize all user inputs
+```
+
+**Example 2: Getting secure coding patterns**
+
+```
+You: How do I safely query the SQLite database in my Streamlit app?
+Claude: [Uses secure_coding_pattern tool for SQLite]
+       Here's the secure way using parameterized queries:
+       ```python
+       import sqlite3
+
+       # Good - Uses parameterized query
+       conn = sqlite3.connect('database.db')
+       cursor = conn.execute(
+           "SELECT * FROM users WHERE name = ?",
+           (user_input,)
+       )
+       ```
+```
+
+**Example 3: Getting deployment guidance**
+
+```
+You: Where should I deploy my Streamlit + SQLite app?
+Claude: [Uses deployment_guidance tool]
+       For a Streamlit + SQLite stack, guided.dev recommends:
+       1. Streamlit Cloud (free tier, low complexity, HTTPS included)
+       2. Fly.io (free tier, low complexity, automatic HTTPS)
+```
+
+#### Troubleshooting
+
+**Problem**: Claude says it doesn't have access to guided.dev tools
+
+**Solutions**:
+1. Check that Phoenix server is running: `curl http://localhost:4000/mcp`
+2. Verify `npx` is available: `npx --version`
+3. Check Claude Desktop logs:
+   - **macOS**: `~/Library/Logs/Claude/`
+   - **Windows**: `%APPDATA%\Claude\logs\`
+   - **Linux**: `~/.config/Claude/logs/`
+4. Ensure `mcp-remote` package is installed: `npx mcp-remote --help`
+
+**Problem**: Connection timeout or refused
+
+**Solutions**:
+1. Verify server is running on correct port:
+   ```bash
+   lsof -i :4000
+   ```
+2. Check firewall settings aren't blocking localhost connections
+3. Try accessing directly:
+   ```bash
+   curl -X POST http://localhost:4000/mcp \
+     -H 'Content-Type: application/json' \
+     -H 'Accept: application/json, text/event-stream' \
+     -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}'
+   ```
+
+**Problem**: `npx: command not found`
+
+**Solution**: Install Node.js from [nodejs.org](https://nodejs.org)
+
+#### Advanced Configuration
+
+**Using a different port:**
+
+If your Phoenix server runs on a different port, update the config:
+
+```json
+{
+  "mcpServers": {
+    "guided-dev": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:4001/mcp"
+      ]
+    }
+  }
+}
+```
+
+**Connecting to a remote server:**
+
+For production deployments:
+
+```json
+{
+  "mcpServers": {
+    "guided-dev": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://guided.dev/mcp"
+      ]
+    }
+  }
+}
+```
+
+**Adding authentication (future):**
+
+When authentication is added:
+
+```json
+{
+  "mcpServers": {
+    "guided-dev": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://guided.dev/mcp",
+        "--header",
+        "Authorization: Bearer ${API_KEY}"
+      ],
+      "env": {
+        "API_KEY": "your_api_key_here"
+      }
+    }
+  }
+}
+```
 
 ### Custom AI Agent Integration
 
