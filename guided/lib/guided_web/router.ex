@@ -22,6 +22,7 @@ defmodule GuidedWeb.Router do
 
     get "/", PageController, :home
     live "/knowledge", KnowledgeLive, :index
+    live "/knowledge/:id", KnowledgeLive, :show
   end
 
   # Other scopes may use custom stacks.
