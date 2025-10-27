@@ -48,19 +48,25 @@ defmodule Guided.MCPServer do
   @impl true
   def handle_tool_call("tech_stack_recommendation", params, frame) do
     result = tech_stack_recommendation(params)
-    {:reply, result, assign(frame, query_count: frame.assigns.query_count + 1)}
+    # Hermes expects a text response directly, it handles the MCP wrapping
+    text_result = Jason.encode!(result, pretty: true)
+    {:reply, text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   @impl true
   def handle_tool_call("secure_coding_pattern", params, frame) do
     result = secure_coding_pattern(params)
-    {:reply, result, assign(frame, query_count: frame.assigns.query_count + 1)}
+    # Hermes expects a text response directly, it handles the MCP wrapping
+    text_result = Jason.encode!(result, pretty: true)
+    {:reply, text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   @impl true
   def handle_tool_call("deployment_guidance", params, frame) do
     result = deployment_guidance(params)
-    {:reply, result, assign(frame, query_count: frame.assigns.query_count + 1)}
+    # Hermes expects a text response directly, it handles the MCP wrapping
+    text_result = Jason.encode!(result, pretty: true)
+    {:reply, text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   # Tech Stack Recommendation Implementation
@@ -71,20 +77,21 @@ defmodule Guided.MCPServer do
     use_case = infer_use_case(intent, context)
 
     # Query for recommended technologies for this use case
+    # Note: We return flat results and group them in Elixir to avoid nested collect()
+    # Note: AGE doesn't support parameters in property matchers, use WHERE clause
     cypher_query = """
-    MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase {name: $use_case})
+    MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)
+    WHERE uc.name = $0
     OPTIONAL MATCH (t)-[:HAS_VULNERABILITY]->(v:Vulnerability)
     OPTIONAL MATCH (v)-[:MITIGATED_BY]->(sc:SecurityControl)
     RETURN t.name as technology,
            t.category as category,
            t.description as description,
            t.security_rating as security_rating,
-           collect(DISTINCT {
-             name: v.name,
-             severity: v.severity,
-             description: v.description,
-             mitigations: collect(DISTINCT sc.name)
-           }) as vulnerabilities
+           v.name as vuln_name,
+           v.severity as vuln_severity,
+           v.description as vuln_description,
+           sc.name as mitigation_name
     """
 
     case Graph.query(cypher_query, [use_case]) do
@@ -113,8 +120,10 @@ defmodule Guided.MCPServer do
     task = Map.get(params, :task, "")
 
     # Query for best practices related to this technology
+    # Note: AGE doesn't support parameters in property matchers, use WHERE clause
     cypher_query = """
-    MATCH (t:Technology {name: $technology})-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
+    MATCH (t:Technology)-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
+    WHERE t.name = $0
     OPTIONAL MATCH (bp)-[:IMPLEMENTS_CONTROL]->(sc:SecurityControl)
     RETURN bp.name as practice_name,
            bp.category as category,
@@ -149,17 +158,17 @@ defmodule Guided.MCPServer do
     requirements = Map.get(params, :requirements, %{})
 
     # Query for deployment patterns recommended for the use cases these technologies support
-    # This is a simplified query - in production, we'd match on more complex criteria
+    # Note: Use $0 for positional parameter, return flat results and group in Elixir
     cypher_query = """
     MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)-[:RECOMMENDED_DEPLOYMENT]->(dp:DeploymentPattern)
-    WHERE t.name IN $technologies
-    RETURN DISTINCT dp.name as pattern_name,
+    WHERE t.name IN $0
+    RETURN dp.name as pattern_name,
            dp.platform as platform,
            dp.cost as cost,
            dp.complexity as complexity,
            dp.description as description,
            dp.https_support as https_support,
-           collect(DISTINCT uc.name) as use_cases
+           uc.name as use_case
     """
 
     case Graph.query(cypher_query, [stack]) do
@@ -205,31 +214,41 @@ defmodule Guided.MCPServer do
   end
 
   # Helper: Parse technology recommendations from graph results
+  # Results come as flat rows, we need to group by technology, then by vulnerability
   defp parse_tech_recommendations(results) do
-    Enum.map(results, fn tech ->
-      # Extract technology data
-      technology = Map.get(tech, "technology", "")
-      category = Map.get(tech, "category", "")
-      description = Map.get(tech, "description", "")
-      security_rating = Map.get(tech, "security_rating", "")
+    results
+    |> Enum.group_by(fn row -> Map.get(row, "technology") end)
+    |> Enum.map(fn {tech_name, rows} ->
+      # Get technology info from first row
+      first_row = List.first(rows)
 
-      # Parse vulnerabilities (they come as a list of maps)
-      vulnerabilities = Map.get(tech, "vulnerabilities", [])
-      |> Enum.filter(fn v -> v["name"] != nil end)
-      |> Enum.map(fn v ->
-        %{
-          name: v["name"],
-          severity: v["severity"],
-          description: v["description"],
-          mitigations: v["mitigations"] || []
-        }
-      end)
+      # Group vulnerabilities and their mitigations
+      vulnerabilities =
+        rows
+        |> Enum.group_by(fn row -> Map.get(row, "vuln_name") end)
+        |> Enum.filter(fn {vuln_name, _rows} -> vuln_name != nil end)
+        |> Enum.map(fn {vuln_name, vuln_rows} ->
+          first_vuln_row = List.first(vuln_rows)
+
+          mitigations =
+            vuln_rows
+            |> Enum.map(fn row -> Map.get(row, "mitigation_name") end)
+            |> Enum.filter(fn m -> m != nil end)
+            |> Enum.uniq()
+
+          %{
+            name: vuln_name,
+            severity: Map.get(first_vuln_row, "vuln_severity"),
+            description: Map.get(first_vuln_row, "vuln_description"),
+            mitigations: mitigations
+          }
+        end)
 
       %{
-        technology: technology,
-        category: category,
-        description: description,
-        security_rating: security_rating,
+        technology: tech_name,
+        category: Map.get(first_row, "category", ""),
+        description: Map.get(first_row, "description", ""),
+        security_rating: Map.get(first_row, "security_rating", ""),
         security_advisories: vulnerabilities
       }
     end)
@@ -267,20 +286,30 @@ defmodule Guided.MCPServer do
   end
 
   # Helper: Parse deployment patterns from graph results
+  # Results come as flat rows, we need to group by pattern and collect use cases
   defp parse_deployment_patterns(results, _requirements) do
     results
-    |> Enum.map(fn pattern ->
+    |> Enum.group_by(fn row -> Map.get(row, "pattern_name") end)
+    |> Enum.map(fn {pattern_name, rows} ->
+      first_row = List.first(rows)
+
+      # Collect unique use cases for this pattern
+      use_cases =
+        rows
+        |> Enum.map(fn row -> Map.get(row, "use_case") end)
+        |> Enum.filter(fn uc -> uc != nil end)
+        |> Enum.uniq()
+
       %{
-        name: Map.get(pattern, "pattern_name", ""),
-        platform: Map.get(pattern, "platform", ""),
-        cost: Map.get(pattern, "cost", ""),
-        complexity: Map.get(pattern, "complexity", ""),
-        description: Map.get(pattern, "description", ""),
-        https_support: Map.get(pattern, "https_support", false),
-        use_cases: Map.get(pattern, "use_cases", [])
+        name: pattern_name,
+        platform: Map.get(first_row, "platform", ""),
+        cost: Map.get(first_row, "cost", ""),
+        complexity: Map.get(first_row, "complexity", ""),
+        description: Map.get(first_row, "description", ""),
+        https_support: Map.get(first_row, "https_support", false),
+        use_cases: use_cases
       }
     end)
-    |> Enum.uniq_by(& &1.name)
   end
 
   # Helper: Select best deployment based on requirements
