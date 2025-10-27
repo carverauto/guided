@@ -1,0 +1,39 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: guided-db
+  namespace: guided
+spec:
+  instances: 3
+  imageName: ghcr.io/carverauto/guided/postgres-age:latest
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: guided-postgres-secret
+  storage:
+    size: 20Gi
+    storageClass: local-path
+  bootstrap:
+    initdb:
+      database: guided
+      postInitSQL:
+        - |
+          CREATE EXTENSION IF NOT EXISTS age;
+          ALTER DATABASE guided OWNER TO guided;
+          ALTER DATABASE guided SET search_path = ag_catalog, "$user", public;
+          ALTER ROLE guided SET search_path = ag_catalog, "$user", public;
+  postgresql:
+    parameters:
+      shared_buffers: 256MB
+      max_connections: "100"
+      password_encryption: scram-sha-256
+  managed:
+    roles:
+      - name: guided
+        ensure: present
+        login: true
+        superuser: true
+        createdb: true
+        createrole: true
+        passwordSecret:
+          name: guided-postgres-secret
+          key: GUIDED_APP_PASSWORD

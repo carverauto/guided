@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: guided-postgres
+  namespace: guided
+spec:
+  replicas: 0

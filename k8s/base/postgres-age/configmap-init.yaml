@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guided-postgres-init
+  namespace: guided
+data:
+  001-create-guided-db.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    GUIDED_APP_USER="${GUIDED_APP_USER:-guided}"
+    GUIDED_APP_PASSWORD="${GUIDED_APP_PASSWORD:-guided}"
+    GUIDED_DB="${POSTGRES_DB:-guided}"
+
+    echo "Ensuring role ${GUIDED_APP_USER} and database ${GUIDED_DB} exist..."
+
+    psql -v ON_ERROR_STOP=1 \
+      --username "${POSTGRES_USER}" \
+      --dbname "${POSTGRES_DB}" \
+      -v guided_user="${GUIDED_APP_USER}" \
+      -v guided_pass="${GUIDED_APP_PASSWORD}" \
+      -v guided_db="${GUIDED_DB}" <<'EOSQL'
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT FROM pg_catalog.pg_roles WHERE rolname = :'guided_user'
+      ) THEN
+        EXECUTE format('CREATE ROLE %I WITH LOGIN PASSWORD %L SUPERUSER CREATEDB;', :'guided_user', :'guided_pass');
+      ELSE
+        EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L SUPERUSER CREATEDB;', :'guided_user', :'guided_pass');
+      END IF;
+    END
+    $$;
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT FROM pg_database WHERE datname = :'guided_db'
+      ) THEN
+        EXECUTE format('CREATE DATABASE %I WITH OWNER %I;', :'guided_db', :'guided_user');
+      ELSE
+        EXECUTE format('ALTER DATABASE %I OWNER TO %I;', :'guided_db', :'guided_user');
+      END IF;
+    END
+    $$;
+    EOSQL
+
+    echo "Loading Apache AGE extension..."
+    psql -v ON_ERROR_STOP=1 \
+      --username "${POSTGRES_USER}" \
+      --dbname "${GUIDED_DB}" \
+      -v guided_user="${GUIDED_APP_USER}" \
+      -v guided_db="${GUIDED_DB}" <<'EOSQL'
+    LOAD 'age';
+    CREATE EXTENSION IF NOT EXISTS age;
+    DO $$
+    DECLARE
+      db_name text := :'guided_db';
+      role_name text := :'guided_user';
+    BEGIN
+      EXECUTE format('ALTER DATABASE %I SET search_path = ag_catalog, "$user", public;', db_name);
+      EXECUTE format('ALTER ROLE %I SET search_path = ag_catalog, "$user", public;', role_name);
+    END
+    $$;
+    EOSQL

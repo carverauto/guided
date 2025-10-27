@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: guided
+resources:
+  - configmap-init.yaml
+  - service.yaml
+  - statefulset.yaml
+  - job-bootstrap.yaml
