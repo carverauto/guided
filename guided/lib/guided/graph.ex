@@ -34,12 +34,15 @@ defmodule Guided.Graph do
       {:ok, %Postgrex.Result{rows: [...]}}
   """
   def cypher(cypher_query, params \\ []) do
-    # Load the AGE extension (must be separate query)
-    with {:ok, _} <- query(Repo, "LOAD 'age'", [], []),
-         {:ok, _} <- query(Repo, "SET search_path = ag_catalog, \"$user\", public", [], []) do
+    # Run all commands in a transaction to ensure they use the same connection
+    Repo.transaction(fn ->
+      # Load the AGE extension and set search path
+      {:ok, _} = query(Repo, "LOAD 'age'", [], [])
+      {:ok, _} = query(Repo, "SET search_path = ag_catalog, \"$user\", public", [], [])
+
       # Build the Cypher query using AGE's cypher function
       # Convert agtype to text which Postgrex can handle
-      if params == [] do
+      result = if params == [] do
         sql_query = """
         SELECT ag_catalog.agtype_to_text(result) as result
         FROM ag_catalog.cypher('#{@graph_name}', $$#{cypher_query}$$) as (result ag_catalog.agtype)
@@ -55,9 +58,11 @@ defmodule Guided.Graph do
         query(Repo, sql_query, [@graph_name, cypher_query, params_json], [])
       end
 
-    else
-      {:error, error} -> {:error, error}
-    end
+      case result do
+        {:ok, data} -> data
+        {:error, error} -> Repo.rollback(error)
+      end
+    end)
   end
 
   @doc """

@@ -48,25 +48,22 @@ defmodule Guided.MCPServer do
   @impl true
   def handle_tool_call("tech_stack_recommendation", params, frame) do
     result = tech_stack_recommendation(params)
-    # Hermes expects a text response directly, it handles the MCP wrapping
     text_result = Jason.encode!(result, pretty: true)
-    {:reply, text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
+    {text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   @impl true
   def handle_tool_call("secure_coding_pattern", params, frame) do
     result = secure_coding_pattern(params)
-    # Hermes expects a text response directly, it handles the MCP wrapping
     text_result = Jason.encode!(result, pretty: true)
-    {:reply, text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
+    {text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   @impl true
   def handle_tool_call("deployment_guidance", params, frame) do
     result = deployment_guidance(params)
-    # Hermes expects a text response directly, it handles the MCP wrapping
     text_result = Jason.encode!(result, pretty: true)
-    {:reply, text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
+    {text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   # Tech Stack Recommendation Implementation
@@ -78,23 +75,26 @@ defmodule Guided.MCPServer do
 
     # Query for recommended technologies for this use case
     # Note: We return flat results and group them in Elixir to avoid nested collect()
-    # Note: AGE doesn't support parameters in property matchers, use WHERE clause
+    # Note: AGE doesn't support parameterized queries, so we interpolate directly (with escaping)
+    # Note: Return a single map object to match AGE's result type expectations
+    escaped_use_case = String.replace(use_case, "'", "\\'")
     cypher_query = """
-    MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)
-    WHERE uc.name = $0
+    MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase {name: '#{escaped_use_case}'})
     OPTIONAL MATCH (t)-[:HAS_VULNERABILITY]->(v:Vulnerability)
     OPTIONAL MATCH (v)-[:MITIGATED_BY]->(sc:SecurityControl)
-    RETURN t.name as technology,
-           t.category as category,
-           t.description as description,
-           t.security_rating as security_rating,
-           v.name as vuln_name,
-           v.severity as vuln_severity,
-           v.description as vuln_description,
-           sc.name as mitigation_name
+    RETURN {
+      technology: t.name,
+      category: t.category,
+      description: t.description,
+      security_rating: t.security_rating,
+      vuln_name: v.name,
+      vuln_severity: v.severity,
+      vuln_description: v.description,
+      mitigation_name: sc.name
+    }
     """
 
-    case Graph.query(cypher_query, [use_case]) do
+    case Graph.query(cypher_query, []) do
       {:ok, results} ->
         # Parse and format the response
         technologies = parse_tech_recommendations(results)
@@ -120,19 +120,22 @@ defmodule Guided.MCPServer do
     task = Map.get(params, :task, "")
 
     # Query for best practices related to this technology
-    # Note: AGE doesn't support parameters in property matchers, use WHERE clause
+    # Note: AGE doesn't support parameterized queries, so we interpolate directly (with escaping)
+    # Note: Return a single map object to match AGE's result type expectations
+    escaped_technology = String.replace(technology, "'", "\\'")
     cypher_query = """
-    MATCH (t:Technology)-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
-    WHERE t.name = $0
+    MATCH (t:Technology {name: '#{escaped_technology}'})-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
     OPTIONAL MATCH (bp)-[:IMPLEMENTS_CONTROL]->(sc:SecurityControl)
-    RETURN bp.name as practice_name,
-           bp.category as category,
-           bp.description as description,
-           bp.code_example as code_example,
-           sc.name as security_control
+    RETURN {
+      practice_name: bp.name,
+      category: bp.category,
+      description: bp.description,
+      code_example: bp.code_example,
+      security_control: sc.name
+    }
     """
 
-    case Graph.query(cypher_query, [technology]) do
+    case Graph.query(cypher_query, []) do
       {:ok, results} ->
         # Filter by task if provided
         practices = parse_best_practices(results, task)
@@ -158,20 +161,24 @@ defmodule Guided.MCPServer do
     requirements = Map.get(params, :requirements, %{})
 
     # Query for deployment patterns recommended for the use cases these technologies support
-    # Note: Use $0 for positional parameter, return flat results and group in Elixir
+    # Note: AGE doesn't support parameterized queries, build list inline
+    # Note: Return a single map object to match AGE's result type expectations
+    escaped_stack = Enum.map(stack, fn tech -> "'#{String.replace(tech, "'", "\\'")}'" end) |> Enum.join(", ")
     cypher_query = """
     MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)-[:RECOMMENDED_DEPLOYMENT]->(dp:DeploymentPattern)
-    WHERE t.name IN $0
-    RETURN dp.name as pattern_name,
-           dp.platform as platform,
-           dp.cost as cost,
-           dp.complexity as complexity,
-           dp.description as description,
-           dp.https_support as https_support,
-           uc.name as use_case
+    WHERE t.name IN [#{escaped_stack}]
+    RETURN {
+      pattern_name: dp.name,
+      platform: dp.platform,
+      cost: dp.cost,
+      complexity: dp.complexity,
+      description: dp.description,
+      https_support: dp.https_support,
+      use_case: uc.name
+    }
     """
 
-    case Graph.query(cypher_query, [stack]) do
+    case Graph.query(cypher_query, []) do
       {:ok, results} ->
         patterns = parse_deployment_patterns(results, requirements)
 

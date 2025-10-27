@@ -15,8 +15,7 @@ IO.puts("Test 1: tech_stack_recommendation Cypher query")
 IO.puts("Testing positional parameter with data_dashboard use case...")
 
 cypher_query = """
-MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)
-WHERE uc.name = $0
+MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase {name: 'data_dashboard'})
 OPTIONAL MATCH (t)-[:HAS_VULNERABILITY]->(v:Vulnerability)
 OPTIONAL MATCH (v)-[:MITIGATED_BY]->(sc:SecurityControl)
 RETURN t.name as technology,
@@ -29,7 +28,7 @@ RETURN t.name as technology,
        sc.name as mitigation_name
 """
 
-case Graph.query(cypher_query, ["data_dashboard"]) do
+case Graph.query(cypher_query, []) do
   {:ok, results} ->
     IO.puts("✓ Query succeeded")
     IO.puts("  Found #{length(results)} result rows")
@@ -48,8 +47,7 @@ IO.puts("\nTest 2: secure_coding_pattern Cypher query")
 IO.puts("Testing with SQLite technology...")
 
 cypher_query2 = """
-MATCH (t:Technology)-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
-WHERE t.name = $0
+MATCH (t:Technology {name: 'SQLite'})-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
 OPTIONAL MATCH (bp)-[:IMPLEMENTS_CONTROL]->(sc:SecurityControl)
 RETURN bp.name as practice_name,
        bp.category as category,
@@ -58,7 +56,7 @@ RETURN bp.name as practice_name,
        sc.name as security_control
 """
 
-case Graph.query(cypher_query2, ["SQLite"]) do
+case Graph.query(cypher_query2, []) do
   {:ok, results} ->
     IO.puts("✓ Query succeeded")
     IO.puts("  Found #{length(results)} best practices")
@@ -78,7 +76,7 @@ IO.puts("Testing with Streamlit and SQLite stack...")
 
 cypher_query3 = """
 MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)-[:RECOMMENDED_DEPLOYMENT]->(dp:DeploymentPattern)
-WHERE t.name IN $0
+WHERE t.name IN ['Streamlit', 'SQLite']
 RETURN dp.name as pattern_name,
        dp.platform as platform,
        dp.cost as cost,
@@ -88,7 +86,7 @@ RETURN dp.name as pattern_name,
        uc.name as use_case
 """
 
-case Graph.query(cypher_query3, [["Streamlit", "SQLite"]]) do
+case Graph.query(cypher_query3, []) do
   {:ok, results} ->
     IO.puts("✓ Query succeeded")
     IO.puts("  Found #{length(results)} deployment patterns")
