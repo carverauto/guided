@@ -1,0 +1,291 @@
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+  <!-- Hero Section -->
+  <div class="relative overflow-hidden">
+    <!-- Animated background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse"></div>
+
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-16 sm:pt-24 sm:pb-20">
+      <!-- Logo/Brand -->
+      <div class="text-center">
+        <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight">
+          <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            guided.dev
+          </span>
+        </h1>
+        <p class="mt-6 text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+          AI-powered security guidance for modern development teams
+        </p>
+        <p class="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+          A curated knowledge graph connecting technologies, vulnerabilities, security controls, and best practices—designed for AI agents and developers.
+        </p>
+      </div>
+
+      <!-- CTA Buttons -->
+      <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <.link
+          navigate={~p"/knowledge"}
+          class="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-full overflow-hidden transition-all hover:scale-105 hover:shadow-xl"
+        >
+          <span class="relative z-10 flex items-center gap-2">
+            Explore Knowledge Base
+            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </span>
+        </.link>
+
+        <%= if Map.get(assigns, :current_user) do %>
+          <.link
+            navigate={~p"/admin"}
+            class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:border-blue-600 dark:hover:border-blue-400 transition-all hover:shadow-lg"
+          >
+            Admin Dashboard
+          </.link>
+        <% else %>
+          <.link
+            navigate={~p"/users/log-in"}
+            class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:border-blue-600 dark:hover:border-blue-400 transition-all hover:shadow-lg"
+          >
+            Admin Login
+          </.link>
+        <% end %>
+      </div>
+
+      <!-- Stats -->
+      <div class="mt-16 grid grid-cols-2 gap-8 sm:grid-cols-4">
+        <div class="text-center">
+          <div class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">24+</div>
+          <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">Knowledge Nodes</div>
+        </div>
+        <div class="text-center">
+          <div class="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">24+</div>
+          <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">Relationships</div>
+        </div>
+        <div class="text-center">
+          <div class="text-4xl font-bold bg-gradient-to-r from-pink-600 to-red-600 bg-clip-text text-transparent">OWASP</div>
+          <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">Security Focus</div>
+        </div>
+        <div class="text-center">
+          <div class="text-4xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">MCP</div>
+          <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">AI-Ready API</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <div class="py-24 bg-white dark:bg-gray-800">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+          Built for the AI-First Era
+        </h2>
+        <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">
+          Empowering developers and AI agents with security intelligence
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Feature 1: Graph Database -->
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
+          <div class="relative p-8 bg-white dark:bg-gray-900 rounded-2xl">
+            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Knowledge Graph
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Powered by Apache AGE, our graph database connects technologies, vulnerabilities, and security controls in meaningful relationships.
+            </p>
+          </div>
+        </div>
+
+        <!-- Feature 2: Security First -->
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
+          <div class="relative p-8 bg-white dark:bg-gray-900 rounded-2xl">
+            <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              OWASP Aligned
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Security best practices mapped to OWASP Top 10, with detailed mitigation strategies and implementation guidance.
+            </p>
+          </div>
+        </div>
+
+        <!-- Feature 3: AI-Ready -->
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-red-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
+          <div class="relative p-8 bg-white dark:bg-gray-900 rounded-2xl">
+            <div class="w-12 h-12 bg-pink-100 dark:bg-pink-900 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              MCP Protocol
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Built-in Model Context Protocol support enables AI agents to query and reason about security decisions.
+            </p>
+          </div>
+        </div>
+
+        <!-- Feature 4: Open Source -->
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-teal-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
+          <div class="relative p-8 bg-white dark:bg-gray-900 rounded-2xl">
+            <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0C5.37 0 0 5.506 0 12.303c0 5.445 3.435 10.043 8.205 11.674.6.107.825-.262.825-.585 0-.292-.015-1.261-.015-2.291C6 21.67 5.22 20.346 4.98 19.654c-.135-.354-.72-1.446-1.23-1.738-.42-.23-1.02-.8-.015-.815.945-.015 1.62.892 1.845 1.261 1.08 1.86 2.805 1.338 3.495 1.015.105-.8.42-1.338.765-1.645-2.67-.308-5.46-1.37-5.46-6.075 0-1.338.465-2.446 1.23-3.307-.12-.308-.54-1.569.12-3.26 0 0 1.005-.323 3.3 1.26.96-.276 1.98-.415 3-.415s2.04.139 3 .416c2.295-1.6 3.3-1.261 3.3-1.261.66 1.691.24 2.952.12 3.26.765.861 1.23 1.953 1.23 3.307 0 4.721-2.805 5.767-5.475 6.075.435.384.81 1.122.81 2.276 0 1.645-.015 2.968-.015 3.383 0 .323.225.707.825.585a12.047 12.047 0 0 0 5.919-4.489A12.536 12.536 0 0 0 24 12.304C24 5.505 18.63 0 12 0Z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Open Source
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Built on Elixir, Phoenix, and Apache AGE. Community-driven knowledge base that grows with contributions.
+            </p>
+          </div>
+        </div>
+
+        <!-- Feature 5: Live Updates -->
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-yellow-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
+          <div class="relative p-8 bg-white dark:bg-gray-900 rounded-2xl">
+            <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Real-Time
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Phoenix LiveView powers real-time admin interface for managing the knowledge graph with instant updates.
+            </p>
+          </div>
+        </div>
+
+        <!-- Feature 6: Graph Queries -->
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
+          <div class="relative p-8 bg-white dark:bg-gray-900 rounded-2xl">
+            <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Cypher Queries
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Powerful graph traversals using openCypher to discover connections between technologies and security patterns.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Use Cases Section -->
+  <div class="py-24 bg-gray-50 dark:bg-gray-900">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+          Built For
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="text-center p-8">
+          <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Developers</h3>
+          <p class="text-gray-600 dark:text-gray-400">
+            Quick reference for security best practices and vulnerability mitigations tailored to your tech stack.
+          </p>
+        </div>
+
+        <div class="text-center p-8">
+          <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">AI Agents</h3>
+          <p class="text-gray-600 dark:text-gray-400">
+            MCP-compatible API enables AI assistants to provide context-aware security recommendations.
+          </p>
+        </div>
+
+        <div class="text-center p-8">
+          <div class="w-16 h-16 bg-gradient-to-br from-pink-500 to-red-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Security Teams</h3>
+          <p class="text-gray-600 dark:text-gray-400">
+            Centralized knowledge base for security controls, threat models, and compliance requirements.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl sm:text-5xl font-bold text-white mb-6">
+        Start Exploring
+      </h2>
+      <p class="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
+        Discover how technologies, vulnerabilities, and security controls connect in our knowledge graph.
+      </p>
+      <.link
+        navigate={~p"/knowledge"}
+        class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-blue-600 bg-white rounded-full hover:bg-gray-100 transition-all hover:scale-105 hover:shadow-2xl"
+      >
+        Browse Knowledge Base
+        <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </.link>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="bg-gray-900 text-gray-400 py-12">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="mb-4 md:mb-0">
+          <span class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            guided.dev
+          </span>
+          <p class="text-sm mt-2">AI-powered security guidance for developers</p>
+        </div>
+        <div class="flex gap-6">
+          <a href="https://github.com" class="hover:text-white transition-colors">GitHub</a>
+          <a href="https://docs.guided.dev" class="hover:text-white transition-colors">Docs</a>
+          <.link navigate={~p"/users/log-in"} class="hover:text-white transition-colors">Admin</.link>
+        </div>
+      </div>
+      <div class="mt-8 pt-8 border-t border-gray-800 text-center text-sm">
+        <p>Built with Elixir, Phoenix, Apache AGE &amp; LiveView • Open Source</p>
+      </div>
+    </div>
+  </div>
+</div>
