@@ -16,6 +16,7 @@ defmodule Guided.MCPServer do
     capabilities: [:tools]
 
   alias Guided.Graph
+  alias Hermes.Server.Response
 
   @impl true
   def init(_client_info, frame) do
@@ -24,22 +25,35 @@ defmodule Guided.MCPServer do
      |> assign(query_count: 0)
      |> register_tool("tech_stack_recommendation",
        input_schema: %{
-         intent: {:required, :string, max: 200, description: "What you want to build (e.g., 'build a web app')"},
-         context: {:optional, :map, description: "Additional context like topic, user scale, complexity"}
+         intent:
+           {:required, :string,
+            max: 200, description: "What you want to build (e.g., 'build a web app')"},
+         context:
+           {:optional, :map, description: "Additional context like topic, user scale, complexity"}
        },
-       description: "Get opinionated advice on the best and most secure tech stack for a given use case"
+       description:
+         "Get opinionated advice on the best and most secure tech stack for a given use case"
      )
      |> register_tool("secure_coding_pattern",
        input_schema: %{
-         technology: {:required, :string, max: 100, description: "Technology name (e.g., 'Streamlit', 'SQLite')"},
-         task: {:optional, :string, max: 200, description: "Specific task or concern (e.g., 'database query', 'authentication')"}
+         technology:
+           {:required, :string,
+            max: 100, description: "Technology name (e.g., 'Streamlit', 'SQLite')"},
+         task:
+           {:optional, :string,
+            max: 200,
+            description: "Specific task or concern (e.g., 'database query', 'authentication')"}
        },
-       description: "Retrieve secure code snippets and patterns for a specific technology and task"
+       description:
+         "Retrieve secure code snippets and patterns for a specific technology and task"
      )
      |> register_tool("deployment_guidance",
        input_schema: %{
-         stack: {:required, :list, description: "List of technologies in your stack (e.g., ['Streamlit', 'SQLite'])"},
-         requirements: {:optional, :map, description: "Requirements like user_load, custom_domain, budget"}
+         stack:
+           {:required, :list,
+            description: "List of technologies in your stack (e.g., ['Streamlit', 'SQLite'])"},
+         requirements:
+           {:optional, :map, description: "Requirements like user_load, custom_domain, budget"}
        },
        description: "Get recommendations for secure deployment patterns based on your tech stack"
      )}
@@ -48,22 +62,34 @@ defmodule Guided.MCPServer do
   @impl true
   def handle_tool_call("tech_stack_recommendation", params, frame) do
     result = tech_stack_recommendation(params)
-    text_result = Jason.encode!(result, pretty: true)
-    {text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
+
+    response =
+      Response.tool()
+      |> Response.structured(result)
+
+    {:reply, response, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   @impl true
   def handle_tool_call("secure_coding_pattern", params, frame) do
     result = secure_coding_pattern(params)
-    text_result = Jason.encode!(result, pretty: true)
-    {text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
+
+    response =
+      Response.tool()
+      |> Response.structured(result)
+
+    {:reply, response, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   @impl true
   def handle_tool_call("deployment_guidance", params, frame) do
     result = deployment_guidance(params)
-    text_result = Jason.encode!(result, pretty: true)
-    {text_result, assign(frame, query_count: frame.assigns.query_count + 1)}
+
+    response =
+      Response.tool()
+      |> Response.structured(result)
+
+    {:reply, response, assign(frame, query_count: frame.assigns.query_count + 1)}
   end
 
   # Tech Stack Recommendation Implementation
@@ -78,6 +104,7 @@ defmodule Guided.MCPServer do
     # Note: AGE doesn't support parameterized queries, so we interpolate directly (with escaping)
     # Note: Return a single map object to match AGE's result type expectations
     escaped_use_case = String.replace(use_case, "'", "\\'")
+
     cypher_query = """
     MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase {name: '#{escaped_use_case}'})
     OPTIONAL MATCH (t)-[:HAS_VULNERABILITY]->(v:Vulnerability)
@@ -123,6 +150,7 @@ defmodule Guided.MCPServer do
     # Note: AGE doesn't support parameterized queries, so we interpolate directly (with escaping)
     # Note: Return a single map object to match AGE's result type expectations
     escaped_technology = String.replace(technology, "'", "\\'")
+
     cypher_query = """
     MATCH (t:Technology {name: '#{escaped_technology}'})-[:HAS_BEST_PRACTICE]->(bp:BestPractice)
     OPTIONAL MATCH (bp)-[:IMPLEMENTS_CONTROL]->(sc:SecurityControl)
@@ -163,7 +191,9 @@ defmodule Guided.MCPServer do
     # Query for deployment patterns recommended for the use cases these technologies support
     # Note: AGE doesn't support parameterized queries, build list inline
     # Note: Return a single map object to match AGE's result type expectations
-    escaped_stack = Enum.map(stack, fn tech -> "'#{String.replace(tech, "'", "\\'")}'" end) |> Enum.join(", ")
+    escaped_stack =
+      Enum.map(stack, fn tech -> "'#{String.replace(tech, "'", "\\'")}'" end) |> Enum.join(", ")
+
     cypher_query = """
     MATCH (t:Technology)-[:RECOMMENDED_FOR]->(uc:UseCase)-[:RECOMMENDED_DEPLOYMENT]->(dp:DeploymentPattern)
     WHERE t.name IN [#{escaped_stack}]
@@ -211,7 +241,7 @@ defmodule Guided.MCPServer do
 
       # Check context for scale hints
       Map.get(context, "users") in ["small", "personal", "small_team"] or
-      String.contains?(intent_lower, ["web app", "webapp", "small", "personal"]) ->
+          String.contains?(intent_lower, ["web app", "webapp", "small", "personal"]) ->
         "web_app_small_team"
 
       # Default to small web app
@@ -278,6 +308,7 @@ defmodule Guided.MCPServer do
 
   # Helper: Filter practices by task keyword
   defp filter_by_task(practices, ""), do: practices
+
   defp filter_by_task(practices, task) do
     task_lower = String.downcase(task)
 
@@ -287,8 +318,8 @@ defmodule Guided.MCPServer do
       desc_lower = String.downcase(practice.description)
 
       String.contains?(name_lower, task_lower) or
-      String.contains?(category_lower, task_lower) or
-      String.contains?(desc_lower, task_lower)
+        String.contains?(category_lower, task_lower) or
+        String.contains?(desc_lower, task_lower)
     end)
   end
 
@@ -321,16 +352,30 @@ defmodule Guided.MCPServer do
 
   # Helper: Select best deployment based on requirements
   defp select_best_deployment([], _requirements), do: nil
+
   defp select_best_deployment(patterns, requirements) do
     # Simple scoring system - in production this would be more sophisticated
-    scored_patterns = Enum.map(patterns, fn pattern ->
-      score = 0
-      score = if Map.get(requirements, "budget") == "free" and pattern.cost =~ "free", do: score + 10, else: score
-      score = if Map.get(requirements, "complexity") == "low" and pattern.complexity == "low", do: score + 5, else: score
-      score = if Map.get(requirements, "https") == true and pattern.https_support, do: score + 5, else: score
+    scored_patterns =
+      Enum.map(patterns, fn pattern ->
+        score = 0
 
-      {pattern, score}
-    end)
+        score =
+          if Map.get(requirements, "budget") == "free" and pattern.cost =~ "free",
+            do: score + 10,
+            else: score
+
+        score =
+          if Map.get(requirements, "complexity") == "low" and pattern.complexity == "low",
+            do: score + 5,
+            else: score
+
+        score =
+          if Map.get(requirements, "https") == true and pattern.https_support,
+            do: score + 5,
+            else: score
+
+        {pattern, score}
+      end)
 
     {best_pattern, _score} = Enum.max_by(scored_patterns, fn {_pattern, score} -> score end)
     best_pattern
@@ -343,22 +388,22 @@ defmodule Guided.MCPServer do
     case use_case do
       "data_dashboard" ->
         "For building a data dashboard, we recommend #{tech_names}. " <>
-        "This stack is well-suited for interactive data visualization with minimal setup. " <>
-        "Pay special attention to the security advisories listed for each technology."
+          "This stack is well-suited for interactive data visualization with minimal setup. " <>
+          "Pay special attention to the security advisories listed for each technology."
 
       "api_service" ->
         "For building an API service, we recommend #{tech_names}. " <>
-        "This stack provides modern, high-performance API development capabilities. " <>
-        "Review the security advisories to ensure proper input validation and authentication."
+          "This stack provides modern, high-performance API development capabilities. " <>
+          "Review the security advisories to ensure proper input validation and authentication."
 
       "web_app_small_team" ->
         "For a web application serving a small team, we recommend #{tech_names}. " <>
-        "This stack balances simplicity with capability, perfect for rapid development. " <>
-        "Follow the security best practices to protect against common vulnerabilities."
+          "This stack balances simplicity with capability, perfect for rapid development. " <>
+          "Follow the security best practices to protect against common vulnerabilities."
 
       _ ->
         "We recommend #{tech_names} for your use case. " <>
-        "Review the security advisories and follow best practices for secure development."
+          "Review the security advisories and follow best practices for secure development."
     end
   end
 end

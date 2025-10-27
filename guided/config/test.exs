@@ -5,15 +5,32 @@ config :bcrypt_elixir, :log_rounds, 1
 
 # Configure your database
 #
-# The MIX_TEST_PARTITION environment variable can be used
-# to provide built-in test partitioning in CI environment.
-# Run `mix help test` for more information.
+# The Dockerized Postgres instance already has the AGE extension installed.
+# Reuse that database by default so graph queries keep working in tests.
+db_username =
+  System.get_env("TEST_DATABASE_USERNAME") || System.get_env("DATABASE_USERNAME") || "postgres"
+
+db_password =
+  System.get_env("TEST_DATABASE_PASSWORD") || System.get_env("DATABASE_PASSWORD") || "guided"
+
+db_hostname =
+  System.get_env("TEST_DATABASE_HOSTNAME") || System.get_env("DATABASE_HOSTNAME") || "localhost"
+
+db_port = System.get_env("TEST_DATABASE_PORT") || System.get_env("DATABASE_PORT") || "5455"
+db_name = System.get_env("TEST_DATABASE_NAME") || System.get_env("DATABASE_NAME") || "guided"
+
+db_name =
+  case System.get_env("MIX_TEST_PARTITION") do
+    nil -> db_name
+    partition -> "#{db_name}#{partition}"
+  end
+
 config :guided, Guided.Repo,
-  username: "postgres",
-  password: "guided",
-  hostname: "localhost",
-  port: 5455,
-  database: "guided_test#{System.get_env("MIX_TEST_PARTITION")}",
+  username: db_username,
+  password: db_password,
+  hostname: db_hostname,
+  port: String.to_integer(db_port),
+  database: db_name,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
