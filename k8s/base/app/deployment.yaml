@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guided-web
+  namespace: guided
+  labels:
+    app.kubernetes.io/name: guided-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: guided-web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: guided-web
+    spec:
+      containers:
+        - name: guided-web
+          image: ghcr.io/carverauto/guided/web:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+              name: http
+          envFrom:
+            - secretRef:
+                name: guided-postgres-secret
+            - secretRef:
+                name: guided-app-secret
+          env:
+            - name: DATABASE_URL
+              value: ecto://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@guided-postgres:5432/$(POSTGRES_DB)
+            - name: PHX_SERVER
+              value: "true"
+            - name: PHX_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: guided-app-config
+                  key: PHX_HOST
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: guided-app-config
+                  key: PORT
+            - name: MIX_ENV
+              value: prod
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            initialDelaySeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 20
+            initialDelaySeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

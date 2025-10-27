@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: guided-postgres-bootstrap
+  namespace: guided
+  labels:
+    app.kubernetes.io/name: guided-postgres-bootstrap
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: guided-postgres-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: apache/age:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: guided-postgres-secret
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              export PGPASSWORD="${POSTGRES_PASSWORD}"
+
+              until pg_isready -h guided-postgres -p 5432 -U "${POSTGRES_USER}" >/dev/null 2>&1; do
+                echo "Waiting for guided-postgres primary to accept connections..."
+                sleep 2
+              done
+              psql --host guided-postgres \
+                --username "${POSTGRES_USER}" \
+                --dbname "${POSTGRES_DB}" \
+                -v guided_app_user="${GUIDED_APP_USER}" \
+                -v guided_app_password="${GUIDED_APP_PASSWORD}" \
+                -v guided_db="${POSTGRES_DB}" \
+                -v graph_name="guided_graph" <<'EOSQL'
+              LOAD 'age';
+              CREATE EXTENSION IF NOT EXISTS age;
+
+              SELECT format(
+                CASE
+                  WHEN EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'guided_app_user')
+                    THEN 'ALTER ROLE %I WITH LOGIN PASSWORD %L SUPERUSER CREATEDB;'
+                  ELSE
+                    'CREATE ROLE %I WITH LOGIN PASSWORD %L SUPERUSER CREATEDB;'
+                END,
+                :'guided_app_user', :'guided_app_password'
+              ) \gexec
+
+              SELECT format(
+                CASE
+                  WHEN EXISTS (SELECT FROM pg_database WHERE datname = :'guided_db')
+                    THEN 'ALTER DATABASE %I OWNER TO %I;'
+                  ELSE
+                    'CREATE DATABASE %I WITH OWNER %I;'
+                END,
+                :'guided_db', :'guided_app_user', :'guided_db', :'guided_app_user'
+              ) \gexec
+
+              SELECT format('ALTER DATABASE %I SET search_path = ag_catalog, "$user", public;', :'guided_db') \gexec
+              SELECT format('ALTER ROLE %I SET search_path = ag_catalog, "$user", public;', :'guided_app_user') \gexec
+
+              SELECT format('SELECT ag_catalog.create_graph(%L);', :'graph_name')
+              WHERE NOT EXISTS (
+                SELECT 1 FROM ag_catalog.ag_graph WHERE name = :'graph_name'
+              ) \gexec
+              EOSQL

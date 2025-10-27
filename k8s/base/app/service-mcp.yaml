@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: guided-mcp
+  namespace: guided
+  labels:
+    app.kubernetes.io/name: guided-web
+  annotations:
+    metallb.universe.tf/address-pool: k3s-pool
+    metallb.universe.tf/allow-shared-ip: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: guided-web
+  ports:
+    - name: mcp
+      port: 4000
+      targetPort: http

@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1.7
+
+ARG CNPG_IMAGE=ghcr.io/cloudnative-pg/postgresql:16.4-7
+ARG AGE_VERSION=v1.5.0
+
+FROM ${CNPG_IMAGE} AS build
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      build-essential \
+      git \
+      cmake \
+      libreadline-dev \
+      libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+USER postgres
+
+WORKDIR /tmp
+
+RUN git clone --branch ${AGE_VERSION} --depth 1 https://github.com/apache/age.git
+
+WORKDIR /tmp/age
+
+RUN make PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config && \
+    make install PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config
+
+FROM ${CNPG_IMAGE} AS runtime
+
+COPY --from=build /usr/lib/postgresql/16/lib/ag_* /usr/lib/postgresql/16/lib/
+COPY --from=build /usr/share/postgresql/16/extension/age* /usr/share/postgresql/16/extension/
+
+USER root
+
+RUN mkdir -p /docker-entrypoint-initdb.d && \
+    echo "shared_preload_libraries = 'age'" >> /usr/share/postgresql/postgresql.conf.sample
+
+USER postgres
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["postgres"]

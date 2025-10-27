@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guided-app-config
+  namespace: guided
+data:
+  PHX_HOST: staging.guided.dev

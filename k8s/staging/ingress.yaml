@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: guided-staging
+  annotations:
+    cert-manager.io/cluster-issuer: carverauto-issuer
+    external-dns.alpha.kubernetes.io/hostname: staging.guided.dev
+    metallb.universe.tf/allow-shared-ip: "true"
+    metallb.universe.tf/address-pool: k3s-pool
+spec:
+  tls:
+    - hosts:
+        - staging.guided.dev
+      secretName: guided-staging-tls
+  rules:
+    - host: staging.guided.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: guided-web
+                port:
+                  name: http
