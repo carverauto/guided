@@ -1,0 +1,126 @@
+# Gateway API replacement for guided staging.
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: guided-staging-tls
+  namespace: guided
+spec:
+  secretName: guided-staging-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: carverauto-issuer
+  commonName: staging.guided.dev
+  dnsNames:
+    - staging.guided.dev
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: guided-staging-edge
+  namespace: guided
+spec:
+  logging:
+    level:
+      default: warn
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: LoadBalancer
+        externalTrafficPolicy: Local
+        annotations:
+          metallb.universe.tf/address-pool: k3s-pool
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ipFamilies:
+                - IPv4
+              ipFamilyPolicy: SingleStack
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: guided-staging-envoy
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: guided-staging-edge
+    namespace: guided
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: guided-staging-gateway
+  namespace: guided
+spec:
+  gatewayClassName: guided-staging-envoy
+  listeners:
+    - name: http
+      hostname: staging.guided.dev
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https
+      hostname: staging.guided.dev
+      port: 443
+      protocol: HTTPS
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: guided-staging-tls
+        mode: Terminate
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: guided-staging
+  namespace: guided
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: staging.guided.dev
+spec:
+  parentRefs:
+    - name: guided-staging-gateway
+      namespace: guided
+      sectionName: https
+  hostnames:
+    - staging.guided.dev
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: guided-web
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: guided-staging-http-redirect
+  namespace: guided
+spec:
+  parentRefs:
+    - name: guided-staging-gateway
+      namespace: guided
+      sectionName: http
+  hostnames:
+    - staging.guided.dev
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

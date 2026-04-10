@@ -5,7 +5,7 @@ namespace: guided
 
 resources:
   - ../base
-  - ingress.yaml
+  - gateway-api.yaml
   - secrets/guided-postgres-secret.yaml
   - secrets/guided-app-secret.yaml
 
