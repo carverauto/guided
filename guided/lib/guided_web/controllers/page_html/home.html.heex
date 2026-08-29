@@ -41,13 +41,6 @@
           >
             Admin Dashboard
           </.link>
-        <% else %>
-          <.link
-            navigate={~p"/users/log-in"}
-            class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:border-blue-600 dark:hover:border-blue-400 transition-all hover:shadow-lg"
-          >
-            Admin Login
-          </.link>
         <% end %>
       </div>
 
@@ -280,7 +273,6 @@
         <div class="flex gap-6">
           <a href="https://github.com/carverauto/guided" class="hover:text-white transition-colors">GitHub</a>
           <a href="https://docs.guided.dev" class="hover:text-white transition-colors">Docs</a>
-          <.link navigate={~p"/users/log-in"} class="hover:text-white transition-colors">Admin</.link>
         </div>
       </div>
       <div class="mt-8 pt-8 border-t border-gray-800 text-center text-sm">
